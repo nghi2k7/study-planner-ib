@@ -52,6 +52,7 @@ jobs:
           git-branch: 'main'
           skip-version-file: 'false'
           skip-commit: 'false'
+          skip-on-empty: 'false'
       - name: Create Release
         uses: softprops/action-gh-release@v1
         if: ${{ steps.changelog.outputs.skipped == 'false' }}
