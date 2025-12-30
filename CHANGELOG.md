@@ -1,3 +1,12 @@
+# [1.2.0](https://github.com/nghi2k7/study-planner-ib/compare/v1.1.2...v1.2.0) (2025-12-30)
+
+
+### Features
+
+* add task/exam management tabs, edit/delete functionality, and improve navigation UX ([0a61ed0](https://github.com/nghi2k7/study-planner-ib/commit/0a61ed03371b9718ca09e529655a4f8f8934a5bd))
+
+
+
 ## [1.1.2](https://github.com/nghi2k7/study-planner-ib/compare/v1.1.1...v1.1.2) (2025-12-30)
 
 
