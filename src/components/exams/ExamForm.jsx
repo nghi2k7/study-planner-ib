@@ -2,13 +2,13 @@ import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { format, addDays } from "date-fns";
 
-export default function ExamForm({ onSubmit, onClose }) {
+export default function ExamForm({ onSubmit, onClose, initialData = null }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    subject: "",
-    date: format(addDays(new Date(), 7), "yyyy-MM-dd"),
-    estimatedTime: 240, // 4 hours default for revision
-    notes: "",
+    subject: initialData?.subject || "",
+    date: initialData?.date || format(addDays(new Date(), 7), "yyyy-MM-dd"),
+    estimatedTime: initialData?.estimatedTime || 240, // 4 hours default for revision
+    notes: initialData?.notes || "",
   });
 
   const [errors, setErrors] = useState({});
@@ -77,7 +77,7 @@ export default function ExamForm({ onSubmit, onClose }) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-2 sm:p-4 z-50 overflow-y-auto">
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6 my-auto">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Add Exam</h2>
+          <h2 className="text-2xl font-bold text-gray-900">{initialData ? "Edit Exam" : "Add Exam"}</h2>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
@@ -184,7 +184,7 @@ export default function ExamForm({ onSubmit, onClose }) {
               className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {loading ? "Adding..." : "Add Exam"}
+              {loading ? (initialData ? "Updating..." : "Adding...") : (initialData ? "Update Exam" : "Add Exam")}
             </button>
           </div>
         </form>

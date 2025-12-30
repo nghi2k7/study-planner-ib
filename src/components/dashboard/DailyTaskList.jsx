@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { format } from "date-fns";
-import { CheckCircle, XCircle, Clock, BookOpen, Loader2 } from "lucide-react";
+import { CheckCircle, XCircle, Clock, BookOpen, Loader2, Trash2 } from "lucide-react";
 
 export default function DailyTaskList({
   schedule,
   selectedDate,
   onSessionStatusChange,
+  onDeleteSession, // New prop
 }) {
   const [updatingId, setUpdatingId] = useState(null);
   const dateKey = format(selectedDate, "yyyy-MM-dd");
@@ -114,7 +115,18 @@ export default function DailyTaskList({
                       </h3>
                       <p className="text-sm text-gray-600">{session.subject}</p>
                     </div>
-                    {getStatusBadge(session.status)}
+                    <div className="flex items-center gap-2">
+                      {getStatusBadge(session.status)}
+                      {onDeleteSession && (
+                        <button
+                          onClick={() => onDeleteSession(session.id)}
+                          className="p-1 text-gray-400 hover:text-red-500 rounded-md hover:bg-red-50 transition-colors"
+                          title="Remove session from today"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="flex items-center gap-4 text-sm text-gray-500">
@@ -124,7 +136,7 @@ export default function DailyTaskList({
                     </span>
                   </div>
 
-                  {session.status === "planned" && (
+                  {(session.status === "planned" || session.status === "rescheduled") && (
                     <div className="mt-3 flex gap-2">
                       <button
                         onClick={() =>
@@ -161,7 +173,7 @@ export default function DailyTaskList({
         </div>
       )}
 
-      {/* Daily Summary */}
+      {/* Session Summary */}
       {daySchedule.sessions.length > 0 && (
         <div className="mt-6 pt-4 border-t">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">

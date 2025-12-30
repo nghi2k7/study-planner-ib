@@ -91,13 +91,13 @@ export const validation = {
   },
 
   /**
-   * Validate daily budget
+   * Validate study session limit
    */
-  validateDailyBudget(minutes) {
+  validateStudySessionLimit(minutes) {
     if (!minutes || isNaN(minutes)) {
       return {
         isValid: false,
-        error: "Daily budget must be a number",
+        error: "Study session limit must be a number",
       };
     }
 
@@ -105,14 +105,14 @@ export const validation = {
     if (time < 60) {
       return {
         isValid: false,
-        error: "Daily budget must be at least 60 minutes",
+        error: "Study session limit must be at least 60 minutes",
       };
     }
 
     if (time > 960) {
       return {
         isValid: false,
-        error: "Daily budget cannot exceed 16 hours (960 minutes)",
+        error: "Study session limit cannot exceed 16 hours (960 minutes)",
       };
     }
 

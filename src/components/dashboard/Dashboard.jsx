@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { taskService } from "../../services/taskService";
 import { examService } from "../../services/examService";
@@ -8,6 +9,8 @@ import WeeklyCalendar from "./WeeklyCalendar";
 import DailyTaskList from "./DailyTaskList";
 import TaskForm from "../tasks/TaskForm";
 import ExamForm from "../exams/ExamForm";
+import TaskList from "../tasks/TaskList";
+import ExamList from "../exams/ExamList";
 import ScheduleGenerator from "../schedule/ScheduleGenerator";
 import { exportCompleteStudyPlan } from "../../utils/exportCSV";
 import toast from "react-hot-toast";
@@ -23,6 +26,9 @@ import { format, startOfWeek } from "date-fns";
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = searchParams.get("tab") || "schedule";
+  
   const [tasks, setTasks] = useState([]);
   const [exams, setExams] = useState([]);
   const [schedule, setSchedule] = useState({});
@@ -31,8 +37,14 @@ export default function Dashboard() {
   const [generating, setGenerating] = useState(false);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showExamForm, setShowExamForm] = useState(false);
-  const [dailyBudget, setDailyBudget] = useState(480); // 8 hours default
+  const [editingTask, setEditingTask] = useState(null);
+  const [editingExam, setEditingExam] = useState(null);
+  const [studySessionLimit, setStudySessionLimit] = useState(480); // 8 hours default
   const [unscheduledItems, setUnscheduledItems] = useState([]);
+
+  const setActiveTab = (tab) => {
+    setSearchParams({ tab });
+  };
 
   useEffect(() => {
     loadData();
@@ -76,7 +88,7 @@ export default function Dashboard() {
       setSchedule(scheduleObj);
 
       // Re-run validation on loaded data to show unscheduled items if any
-      const engine = new SchedulingEngine(tasksData, examsData, dailyBudget);
+      const engine = new SchedulingEngine(tasksData, examsData, studySessionLimit);
       const validation = engine.validateSchedule(scheduleObj);
       setUnscheduledItems(validation.unscheduledItems || []);
     } catch (error) {
@@ -87,7 +99,7 @@ export default function Dashboard() {
     }
   };
 
-  const generateSchedule = async (budget = dailyBudget) => {
+  const generateSchedule = async (budget = studySessionLimit) => {
     try {
       setGenerating(true);
       const startTime = Date.now();
@@ -142,23 +154,89 @@ export default function Dashboard() {
 
   const handleTaskCreated = async (taskData) => {
     try {
-      const newTask = await taskService.createTask(user.uid, taskData);
-      setTasks([...tasks, newTask]);
+      const cleanedData = {
+        ...taskData,
+        estimatedTime: parseInt(taskData.estimatedTime),
+      };
+
+      if (editingTask) {
+        // Update existing task
+        await taskService.updateTask(editingTask.id, cleanedData);
+        setTasks(tasks.map(t => t.id === editingTask.id ? { ...t, ...cleanedData } : t));
+        
+        // Also update any existing sessions in the schedule with the new name/subject
+        const updatedSchedule = { ...schedule };
+        let hasChanges = false;
+        Object.keys(updatedSchedule).forEach(date => {
+          updatedSchedule[date].sessions = updatedSchedule[date].sessions.map(s => {
+            if (s.taskId === editingTask.id) {
+              hasChanges = true;
+              return { ...s, title: cleanedData.name, subject: cleanedData.subject };
+            }
+            return s;
+          });
+        });
+        
+        if (hasChanges) {
+          setSchedule(updatedSchedule);
+          // Note: In a real app, we might want to update these in Firestore too
+          // but since schedule is often re-generated, this UI update is a good start
+        }
+
+        setEditingTask(null);
+        toast.success("Task updated successfully");
+      } else {
+        // Create new task
+        const newTask = await taskService.createTask(user.uid, cleanedData);
+        setTasks([...tasks, newTask]);
+        toast.success("Task added successfully");
+      }
       setShowTaskForm(false);
-      toast.success("Task added successfully");
     } catch (error) {
-      toast.error("Failed to create task");
+      toast.error(editingTask ? "Failed to update task" : "Failed to create task");
     }
   };
 
   const handleExamCreated = async (examData) => {
     try {
-      const newExam = await examService.createExam(user.uid, examData);
-      setExams([...exams, newExam]);
+      const cleanedData = {
+        ...examData,
+        estimatedTime: parseInt(examData.estimatedTime),
+      };
+
+      if (editingExam) {
+        // Update existing exam
+        await examService.updateExam(editingExam.id, cleanedData);
+        setExams(exams.map(e => e.id === editingExam.id ? { ...e, ...cleanedData } : e));
+
+        // Also update any existing sessions in the schedule
+        const updatedSchedule = { ...schedule };
+        let hasChanges = false;
+        Object.keys(updatedSchedule).forEach(date => {
+          updatedSchedule[date].sessions = updatedSchedule[date].sessions.map(s => {
+            if (s.examId === editingExam.id) {
+              hasChanges = true;
+              return { ...s, subject: cleanedData.subject };
+            }
+            return s;
+          });
+        });
+
+        if (hasChanges) {
+          setSchedule(updatedSchedule);
+        }
+
+        setEditingExam(null);
+        toast.success("Exam updated successfully");
+      } else {
+        // Create new exam
+        const newExam = await examService.createExam(user.uid, cleanedData);
+        setExams([...exams, newExam]);
+        toast.success("Exam added successfully");
+      }
       setShowExamForm(false);
-      toast.success("Exam added successfully");
     } catch (error) {
-      toast.error("Failed to create exam");
+      toast.error(editingExam ? "Failed to update exam" : "Failed to create exam");
     }
   };
 
@@ -188,7 +266,7 @@ export default function Dashboard() {
 
       // If missed, trigger greedy rescheduling as per flowchart
       if (status === "missed" && missedSession) {
-        const engine = new SchedulingEngine([], [], dailyBudget);
+        const engine = new SchedulingEngine([], [], studySessionLimit);
         const allSessions = Object.values(updatedSchedule).flatMap(
           (d) => d.sessions
         );
@@ -225,6 +303,82 @@ export default function Dashboard() {
     } catch (error) {
       console.error("Error updating session:", error);
       toast.error("Failed to update session");
+    }
+  };
+
+  const handleTaskDeleted = async (taskId) => {
+    try {
+      await Promise.all([
+        taskService.deleteTask(taskId),
+        scheduleService.deleteSessionsByTaskId(user.uid, taskId)
+      ]);
+      setTasks(tasks.filter((t) => t.id !== taskId));
+      
+      // Update schedule local state to remove sessions associated with this task
+      const updatedSchedule = { ...schedule };
+      Object.keys(updatedSchedule).forEach(date => {
+        updatedSchedule[date].sessions = updatedSchedule[date].sessions.filter(s => s.taskId !== taskId);
+        updatedSchedule[date].totalMinutes = updatedSchedule[date].sessions.reduce((sum, s) => sum + s.duration, 0);
+      });
+      setSchedule(updatedSchedule);
+      
+      toast.success("Task and associated sessions deleted");
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      toast.error("Failed to delete task");
+    }
+  };
+
+  const handleExamDeleted = async (examId) => {
+    try {
+      await Promise.all([
+        examService.deleteExam(examId),
+        scheduleService.deleteSessionsByExamId(user.uid, examId)
+      ]);
+      setExams(exams.filter((e) => e.id !== examId));
+
+      // Update schedule local state to remove sessions associated with this exam
+      const updatedSchedule = { ...schedule };
+      Object.keys(updatedSchedule).forEach(date => {
+        updatedSchedule[date].sessions = updatedSchedule[date].sessions.filter(s => s.examId !== examId);
+        updatedSchedule[date].totalMinutes = updatedSchedule[date].sessions.reduce((sum, s) => sum + s.duration, 0);
+      });
+      setSchedule(updatedSchedule);
+
+      toast.success("Exam and associated sessions deleted");
+    } catch (error) {
+      console.error("Error deleting exam:", error);
+      toast.error("Failed to delete exam");
+    }
+  };
+
+  const handleTaskUpdate = async (taskId, updates) => {
+    try {
+      await taskService.updateTask(taskId, updates);
+      setTasks(tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
+      toast.success("Task updated");
+    } catch (error) {
+      toast.error("Failed to update task");
+    }
+  };
+
+  const handleSessionDelete = async (sessionId) => {
+    try {
+      if (window.confirm("Remove this session from your schedule?")) {
+        await scheduleService.deleteSession(sessionId);
+        
+        // Update local state
+        const updatedSchedule = { ...schedule };
+        Object.keys(updatedSchedule).forEach(date => {
+          updatedSchedule[date].sessions = updatedSchedule[date].sessions.filter(s => s.id !== sessionId);
+          updatedSchedule[date].totalMinutes = updatedSchedule[date].sessions.reduce((sum, s) => sum + s.duration, 0);
+        });
+        
+        setSchedule(updatedSchedule);
+        toast.success("Session removed");
+      }
+    } catch (error) {
+      toast.error("Failed to remove session");
     }
   };
 
@@ -304,7 +458,7 @@ export default function Dashboard() {
                 <div className="mt-2 text-sm text-amber-700">
                   <p>
                     The following items could not be fully scheduled within your
-                    daily budget:
+                    study session:
                   </p>
                   <ul className="list-disc list-inside mt-1 space-y-1">
                     {unscheduledItems.map((item, idx) => (
@@ -315,7 +469,7 @@ export default function Dashboard() {
                     ))}
                   </ul>
                   <p className="mt-2 font-medium">
-                    Try increasing your daily budget or extending deadlines.
+                    Try increasing your study session limit or extending deadlines.
                   </p>
                 </div>
               </div>
@@ -324,7 +478,12 @@ export default function Dashboard() {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg p-4 shadow-xs">
+          <div 
+            onClick={() => setActiveTab("tasks")}
+            className={`rounded-lg p-4 shadow-xs cursor-pointer transition-all hover:scale-102 ${
+              activeTab === "tasks" ? "bg-blue-50 ring-2 ring-blue-500" : "bg-white"
+            }`}
+          >
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Calendar className="w-5 h-5 text-blue-600" />
@@ -338,7 +497,12 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-4 shadow-xs">
+          <div 
+            onClick={() => setActiveTab("exams")}
+            className={`rounded-lg p-4 shadow-xs cursor-pointer transition-all hover:scale-102 ${
+              activeTab === "exams" ? "bg-green-50 ring-2 ring-green-500" : "bg-white"
+            }`}
+          >
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
                 <BookOpen className="w-5 h-5 text-green-600" />
@@ -352,15 +516,20 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-4 shadow-xs">
+          <div 
+            onClick={() => setActiveTab("schedule")}
+            className={`rounded-lg p-4 shadow-xs cursor-pointer transition-all hover:scale-102 ${
+              activeTab === "schedule" ? "bg-purple-50 ring-2 ring-purple-500" : "bg-white"
+            }`}
+          >
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <Clock className="w-5 h-5 text-purple-600" />
               </div>
               <div>
-                <p className="text-sm text-gray-600">Daily Budget</p>
+                <p className="text-sm text-gray-600">Study Session</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {dailyBudget / 60}h
+                  {studySessionLimit / 60}h
                 </p>
               </div>
             </div>
@@ -370,49 +539,83 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 pb-8 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Weekly Calendar */}
-          <div className="lg:col-span-2">
-            <WeeklyCalendar
-              schedule={schedule}
-              selectedDate={selectedDate}
-              onDateSelect={setSelectedDate}
-              onSessionStatusChange={handleSessionStatusChange}
-            />
-          </div>
+        {activeTab === "schedule" && (
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Weekly Calendar */}
+            <div className="lg:col-span-2">
+              <WeeklyCalendar
+                schedule={schedule}
+                selectedDate={selectedDate}
+                onDateSelect={setSelectedDate}
+                onSessionStatusChange={handleSessionStatusChange}
+              />
+            </div>
 
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            <ScheduleGenerator
-              tasks={tasks}
-              exams={exams}
-              onGenerate={generateSchedule}
-              dailyBudget={dailyBudget}
-              onBudgetChange={setDailyBudget}
-              loading={generating}
-            />
+            {/* Sidebar */}
+            <div className="lg:col-span-1 space-y-6">
+              <ScheduleGenerator
+                tasks={tasks}
+                exams={exams}
+                onGenerate={generateSchedule}
+                studySessionLimit={studySessionLimit}
+                onLimitChange={setStudySessionLimit}
+                loading={generating}
+              />
 
-            <DailyTaskList
-              schedule={schedule}
-              selectedDate={selectedDate}
-              onSessionStatusChange={handleSessionStatusChange}
-            />
+              <DailyTaskList
+                schedule={schedule}
+                selectedDate={selectedDate}
+                onSessionStatusChange={handleSessionStatusChange}
+                onDeleteSession={handleSessionDelete}
+              />
+            </div>
           </div>
-        </div>
+        )}
+
+        {activeTab === "tasks" && (
+          <TaskList
+            tasks={tasks}
+            onEdit={(task) => {
+              setEditingTask(task);
+              setShowTaskForm(true);
+            }}
+            onDelete={handleTaskDeleted}
+            onComplete={(id) => handleTaskUpdate(id, { status: "completed" })}
+          />
+        )}
+
+        {activeTab === "exams" && (
+          <ExamList
+            exams={exams}
+            onEdit={(exam) => {
+              setEditingExam(exam);
+              setShowExamForm(true);
+            }}
+            onDelete={handleExamDeleted}
+          />
+        )}
       </div>
 
       {/* Modals */}
       {showTaskForm && (
         <TaskForm
           onSubmit={handleTaskCreated}
-          onClose={() => setShowTaskForm(false)}
+          onClose={() => {
+            setShowTaskForm(false);
+            setEditingTask(null);
+          }}
+          initialData={editingTask}
         />
       )}
 
       {showExamForm && (
         <ExamForm
           onSubmit={handleExamCreated}
-          onClose={() => setShowExamForm(false)}
+          onClose={() => {
+            setShowExamForm(false);
+            setEditingExam(null);
+          }}
+          initialData={editingExam}
         />
       )}
     </div>

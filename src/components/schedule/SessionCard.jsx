@@ -91,7 +91,7 @@ export default function SessionCard({
           </div>
 
           {/* Action Buttons */}
-          {session.status === "planned" && onStatusChange && (
+          {(session.status === "planned" || session.status === "rescheduled") && onStatusChange && (
             <div className="flex gap-2">
               <button
                 onClick={() => handleStatusClick("completed")}
@@ -111,7 +111,7 @@ export default function SessionCard({
           )}
 
           {/* Status Badge for Completed/Missed */}
-          {session.status !== "planned" && (
+          {session.status !== "planned" && session.status !== "rescheduled" && (
             <div className="pt-2 border-t border-current opacity-50">
               <p className="text-[10px] sm:text-xs font-medium uppercase tracking-wider">{session.status}</p>
             </div>
