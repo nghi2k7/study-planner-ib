@@ -34,7 +34,7 @@ export default function ExamList({ exams, onEdit, onDelete }) {
           <div className="flex items-start gap-3 flex-1 w-full">
             {/* Icon */}
             <div
-              className={`p-2 rounded-lg flex-shrink-0 ${
+              className={`p-2 rounded-lg shrink-0 ${
                 isPast ? "bg-gray-200" : "bg-green-100"
               }`}
             >
@@ -51,7 +51,7 @@ export default function ExamList({ exams, onEdit, onDelete }) {
 
               <div className="space-y-1.5 text-xs sm:text-sm text-gray-600">
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Calendar className="w-4 h-4 flex-shrink-0" />
+                  <Calendar className="w-4 h-4 shrink-0" />
                   <span>{dateHelpers.formatWithYear(exam.date)}</span>
                   {!isPast && (
                     <span className="text-blue-600 font-medium">
@@ -64,7 +64,7 @@ export default function ExamList({ exams, onEdit, onDelete }) {
                 </div>
 
                 <div className="flex items-center gap-2 flex-wrap">
-                  <Clock className="w-4 h-4 flex-shrink-0" />
+                  <Clock className="w-4 h-4 shrink-0" />
                   <span>
                     Total revision:{" "}
                     {dateHelpers.minutesToHoursString(
