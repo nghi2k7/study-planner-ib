@@ -30,7 +30,7 @@ export default function WeeklyCalendar({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+    <div className="bg-white rounded-xl shadow-xs p-4 sm:p-6">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Weekly Schedule</h2>
 
       <div className="overflow-x-auto -mx-4 sm:mx-0 pb-4">

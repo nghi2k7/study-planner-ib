@@ -125,7 +125,7 @@ export default function ExamList({ exams, onEdit, onDelete }) {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
+    <div className="bg-white rounded-xl shadow-xs p-6">
       <h2 className="text-xl font-bold text-gray-900 mb-6">All Exams</h2>
 
       {/* Upcoming Exams */}

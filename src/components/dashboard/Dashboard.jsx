@@ -249,7 +249,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-white shadow-xs border-b">
         <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
@@ -292,7 +292,7 @@ export default function Dashboard() {
       <div className="max-w-7xl mx-auto px-4 py-6 sm:px-6 lg:px-8">
         {/* Unscheduled Warnings */}
         {unscheduledItems.length > 0 && (
-          <div className="mb-6 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-r-lg shadow-sm">
+          <div className="mb-6 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-r-lg shadow-xs">
             <div className="flex items-start gap-3">
               <div className="shrink-0">
                 <Clock className="h-5 w-5 text-amber-400" />
@@ -324,7 +324,7 @@ export default function Dashboard() {
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          <div className="bg-white rounded-lg p-4 shadow-sm">
+          <div className="bg-white rounded-lg p-4 shadow-xs">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-100 rounded-lg">
                 <Calendar className="w-5 h-5 text-blue-600" />
@@ -338,7 +338,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-4 shadow-sm">
+          <div className="bg-white rounded-lg p-4 shadow-xs">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-green-100 rounded-lg">
                 <BookOpen className="w-5 h-5 text-green-600" />
@@ -352,7 +352,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="bg-white rounded-lg p-4 shadow-sm">
+          <div className="bg-white rounded-lg p-4 shadow-xs">
             <div className="flex items-center gap-3">
               <div className="p-2 bg-purple-100 rounded-lg">
                 <Clock className="w-5 h-5 text-purple-600" />

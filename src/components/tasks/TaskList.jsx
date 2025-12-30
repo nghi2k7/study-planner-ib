@@ -30,7 +30,7 @@ export default function TaskList({ tasks, onEdit, onDelete, onComplete }) {
   });
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
+    <div className="bg-white rounded-xl shadow-xs p-6">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-900 mb-4">All Tasks</h2>
 

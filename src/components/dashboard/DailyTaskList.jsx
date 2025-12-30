@@ -75,7 +75,7 @@ export default function DailyTaskList({
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6">
+    <div className="bg-white rounded-xl shadow-xs p-6">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-900">
           {format(selectedDate, "EEEE, MMMM d")}

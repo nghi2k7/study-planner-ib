@@ -117,7 +117,7 @@ export default function LoginForm() {
           <button
             onClick={handleGoogleLogin}
             disabled={loading}
-            className="mt-4 w-full flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2.5 sm:py-3 rounded-lg transition-colors disabled:opacity-50 text-sm sm:text-base shadow-sm"
+            className="mt-4 w-full flex items-center justify-center gap-2 bg-white border border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-2.5 sm:py-3 rounded-lg transition-colors disabled:opacity-50 text-sm sm:text-base shadow-xs"
           >
             <Chrome className="w-5 h-5" />
             Google
