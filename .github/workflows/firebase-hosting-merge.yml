@@ -35,7 +35,7 @@ jobs:
           repoToken: '${{ secrets.GITHUB_TOKEN }}'
           firebaseServiceAccount: '${{ secrets.FIREBASE_SERVICE_ACCOUNT_STUDY_PLANNER_IB_E231D }}'
           channelId: live
-          projectId: study-planner-ib-e231d
+          projectId: study-planner-ib
 
   generate_changelog:
     runs-on: ubuntu-latest
