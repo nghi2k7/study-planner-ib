@@ -21,16 +21,19 @@ export default function Navbar() {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
+          <div 
+            className="flex items-center gap-3 cursor-pointer group"
+            onClick={() => navigate("/dashboard?tab=schedule")}
+          >
+            <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
               <Calendar className="w-6 h-6 text-blue-600" />
             </div>
-            <span className="text-xl font-bold text-gray-900">
+            <span className="text-xl font-bold text-gray-900 group-hover:text-blue-600 transition-colors">
               Study Planner
             </span>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-6">
             <span className="text-xs sm:text-sm text-gray-600 hidden xs:block">
               {user?.email}
             </span>

@@ -3,6 +3,7 @@ import {
   addDoc,
   updateDoc,
   doc,
+  deleteDoc,
   query,
   where,
   getDocs,
@@ -178,6 +179,64 @@ export const scheduleService = {
       }));
     } catch (error) {
       console.error("Error fetching missed sessions:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete a single session
+   */
+  async deleteSession(sessionId) {
+    try {
+      const sessionRef = doc(db, SESSIONS_COLLECTION, sessionId);
+      await deleteDoc(sessionRef);
+      return { id: sessionId, deleted: true };
+    } catch (error) {
+      console.error("Error deleting session:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete all sessions associated with a specific task
+   */
+  async deleteSessionsByTaskId(userId, taskId) {
+    try {
+      const q = query(
+        collection(db, SESSIONS_COLLECTION),
+        where("userId", "==", userId),
+        where("taskId", "==", taskId)
+      );
+      const querySnapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      querySnapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+    } catch (error) {
+      console.error("Error deleting sessions by task ID:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Delete all sessions associated with a specific exam
+   */
+  async deleteSessionsByExamId(userId, examId) {
+    try {
+      const q = query(
+        collection(db, SESSIONS_COLLECTION),
+        where("userId", "==", userId),
+        where("examId", "==", examId)
+      );
+      const querySnapshot = await getDocs(q);
+      const batch = writeBatch(db);
+      querySnapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+    } catch (error) {
+      console.error("Error deleting sessions by exam ID:", error);
       throw error;
     }
   },

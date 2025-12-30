@@ -17,7 +17,7 @@ export function useSchedule() {
 
   // Generate weekly schedule
   const generateSchedule = useCallback(
-    async (tasks, exams, dailyBudget = 480) => {
+    async (tasks, exams, studySessionLimit = 480) => {
       if (!user) {
         toast.error("You must be logged in");
         return { success: false };
@@ -42,7 +42,7 @@ export function useSchedule() {
         const engine = new SchedulingEngine(
           pendingTasks,
           upcomingExams,
-          dailyBudget
+          studySessionLimit
         );
         const newSchedule = engine.generateWeeklySchedule();
 

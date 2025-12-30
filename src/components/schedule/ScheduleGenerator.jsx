@@ -6,8 +6,8 @@ export default function ScheduleGenerator({
   tasks,
   exams,
   onGenerate,
-  dailyBudget,
-  onBudgetChange,
+  studySessionLimit,
+  onLimitChange,
   loading = false,
 }) {
   const [showSettings, setShowSettings] = useState(false);
@@ -16,13 +16,13 @@ export default function ScheduleGenerator({
   const upcomingExams = exams.filter((e) => !dateHelpers.isPast(e.date));
 
   const handleGenerate = () => {
-    onGenerate(dailyBudget);
+    onGenerate(studySessionLimit);
   };
 
-  const handleBudgetInputChange = (e) => {
+  const handleLimitInputChange = (e) => {
     const value = parseInt(e.target.value);
     if (!isNaN(value)) {
-      onBudgetChange(value);
+      onLimitChange(value);
     }
   };
 
@@ -37,7 +37,7 @@ export default function ScheduleGenerator({
 
   const getEstimatedDays = () => {
     const totalMinutes = getTotalWorkload();
-    return Math.ceil(totalMinutes / dailyBudget);
+    return Math.ceil(totalMinutes / studySessionLimit);
   };
 
   const canGenerate = pendingTasks.length > 0 || upcomingExams.length > 0;
@@ -67,7 +67,7 @@ export default function ScheduleGenerator({
       {showSettings && (
         <div className="mb-4 p-3 sm:p-4 bg-gray-50 rounded-lg">
           <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">
-            Daily Study Budget (minutes)
+            Study Session Limit (minutes)
           </label>
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
             <input
@@ -75,15 +75,15 @@ export default function ScheduleGenerator({
               min="60"
               max="960"
               step="30"
-              value={dailyBudget}
-              onChange={handleBudgetInputChange}
+              value={studySessionLimit}
+              onChange={handleLimitInputChange}
               className="flex-1"
             />
             <div className="flex items-center gap-2">
               <input
                 type="number"
-                value={dailyBudget}
-                onChange={handleBudgetInputChange}
+                value={studySessionLimit}
+                onChange={handleLimitInputChange}
                 min="60"
                 max="960"
                 className="w-full sm:w-20 px-2 py-1 border border-gray-300 rounded text-sm"
@@ -94,7 +94,7 @@ export default function ScheduleGenerator({
             </div>
           </div>
           <p className="text-[10px] sm:text-xs text-gray-600 mt-1.5">
-            {dateHelpers.minutesToHoursString(dailyBudget)} per day
+            {dateHelpers.minutesToHoursString(studySessionLimit)} per day
           </p>
         </div>
       )}
@@ -156,7 +156,7 @@ export default function ScheduleGenerator({
 
       {/* Info */}
       <p className="text-[10px] sm:text-xs text-gray-500 text-center mt-3">
-        Schedules are generated based on deadlines and daily budget
+        Schedules are generated based on deadlines and study sessions
       </p>
     </div>
   );

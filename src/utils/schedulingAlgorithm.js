@@ -12,10 +12,10 @@ import {
  */
 
 export class SchedulingEngine {
-  constructor(tasks, exams, dailyBudgetMinutes = 480) {
+  constructor(tasks, exams, studySessionLimitMinutes = 480) {
     this.tasks = tasks;
     this.exams = exams;
-    this.dailyBudgetMinutes = dailyBudgetMinutes;
+    this.studySessionLimitMinutes = studySessionLimitMinutes;
     this.schedule = {};
   }
 
@@ -27,18 +27,18 @@ export class SchedulingEngine {
     const start = startOfWeek(startDate, { weekStartsOn: 1 }); // Monday
     const sessions = [];
 
-    // Initialize daily time budgets
-    const dailyTimeUsed = {};
+    // Initialize study session time limits
+    const sessionTimeUsed = {};
     for (let i = 0; i < 7; i++) {
       const day = format(addDays(start, i), "yyyy-MM-dd");
-      dailyTimeUsed[day] = 0;
+      sessionTimeUsed[day] = 0;
     }
 
     // Step 1: Schedule homework tasks (highest priority)
     const sortedTasks = this.sortTasksByDeadline();
 
     for (const task of sortedTasks) {
-      const taskSessions = this.scheduleTask(task, start, dailyTimeUsed);
+      const taskSessions = this.scheduleTask(task, start, sessionTimeUsed);
       if (taskSessions && taskSessions.length > 0) {
         sessions.push(...taskSessions);
       }
@@ -49,7 +49,7 @@ export class SchedulingEngine {
       const examSessions = this.distributeExamRevision(
         exam,
         start,
-        dailyTimeUsed
+        sessionTimeUsed
       );
       sessions.push(...examSessions);
     }
@@ -72,7 +72,7 @@ export class SchedulingEngine {
    * Schedule a single homework task
    * Supports splitting across multiple days if needed (greedy filling)
    */
-  scheduleTask(task, weekStart, dailyTimeUsed) {
+  scheduleTask(task, weekStart, sessionTimeUsed) {
     const deadline = new Date(task.deadline);
     const daysUntilDeadline = differenceInDays(deadline, weekStart);
     let remainingMinutes = task.estimatedTime;
@@ -81,12 +81,12 @@ export class SchedulingEngine {
     // Try to schedule across available days before deadline
     for (let day = 0; day <= Math.min(daysUntilDeadline, 6); day++) {
       const currentDay = format(addDays(weekStart, day), "yyyy-MM-dd");
-      const freeMinutes = this.dailyBudgetMinutes - dailyTimeUsed[currentDay];
+      const freeMinutes = this.studySessionLimitMinutes - sessionTimeUsed[currentDay];
 
       if (freeMinutes > 0) {
         const timeToAssign = Math.min(remainingMinutes, freeMinutes);
 
-        dailyTimeUsed[currentDay] += timeToAssign;
+        sessionTimeUsed[currentDay] += timeToAssign;
         remainingMinutes -= timeToAssign;
 
         taskSessions.push({
@@ -117,7 +117,7 @@ export class SchedulingEngine {
    * Distribute exam revision across available days
    * Implements greedy filling as per flowchart
    */
-  distributeExamRevision(exam, weekStart, dailyTimeUsed) {
+  distributeExamRevision(exam, weekStart, sessionTimeUsed) {
     const examDate = new Date(exam.date);
     const daysUntilExam = differenceInDays(examDate, weekStart);
     const sessions = [];
@@ -130,7 +130,7 @@ export class SchedulingEngine {
 
     for (let day = 0; day < daysToUse && day < 7; day++) {
       const currentDay = format(addDays(weekStart, day), "yyyy-MM-dd");
-      const freeMinutes = this.dailyBudgetMinutes - dailyTimeUsed[currentDay];
+      const freeMinutes = this.studySessionLimitMinutes - sessionTimeUsed[currentDay];
 
       if (freeMinutes > 0) {
         // Assign up to ideal share or whatever is free
@@ -141,7 +141,7 @@ export class SchedulingEngine {
         );
 
         if (timeToAssign > 0) {
-          dailyTimeUsed[currentDay] += timeToAssign;
+          sessionTimeUsed[currentDay] += timeToAssign;
           remainingMinutes -= timeToAssign;
 
           sessions.push({
@@ -164,7 +164,7 @@ export class SchedulingEngine {
     if (remainingMinutes > 0) {
       for (let day = 0; day < daysToUse && day < 7; day++) {
         const currentDay = format(addDays(weekStart, day), "yyyy-MM-dd");
-        const freeMinutes = this.dailyBudgetMinutes - dailyTimeUsed[currentDay];
+        const freeMinutes = this.studySessionLimitMinutes - sessionTimeUsed[currentDay];
 
         if (freeMinutes > 0) {
           const timeToAssign = Math.min(remainingMinutes, freeMinutes);
@@ -186,7 +186,7 @@ export class SchedulingEngine {
             });
           }
 
-          dailyTimeUsed[currentDay] += timeToAssign;
+          sessionTimeUsed[currentDay] += timeToAssign;
           remainingMinutes -= timeToAssign;
         }
         if (remainingMinutes <= 0) break;
@@ -203,18 +203,18 @@ export class SchedulingEngine {
   rescheduleMissedSession(missedSession, currentDate, existingSessions) {
     let remainingMinutes = missedSession.duration;
     const newSessions = [];
-    const dailyTimeUsed = this.calculateDailyTimeUsed(existingSessions);
+    const sessionTimeUsed = this.calculateSessionTimeUsed(existingSessions);
 
     for (let day = 1; day <= 3; day++) {
       const targetDate = format(addDays(currentDate, day), "yyyy-MM-dd");
       const freeMinutes =
-        this.dailyBudgetMinutes - (dailyTimeUsed[targetDate] || 0);
+        this.studySessionLimitMinutes - (sessionTimeUsed[targetDate] || 0);
 
       if (freeMinutes > 0) {
         const timeToAssign = Math.min(remainingMinutes, freeMinutes);
 
-        dailyTimeUsed[targetDate] =
-          (dailyTimeUsed[targetDate] || 0) + timeToAssign;
+        sessionTimeUsed[targetDate] =
+          (sessionTimeUsed[targetDate] || 0) + timeToAssign;
         remainingMinutes -= timeToAssign;
 
         newSessions.push({
@@ -241,7 +241,7 @@ export class SchedulingEngine {
   /**
    * Calculate time used per day from existing schedule
    */
-  calculateDailyTimeUsed(sessions) {
+  calculateSessionTimeUsed(sessions) {
     const timeUsed = {};
     sessions.forEach((session) => {
       if (!timeUsed[session.date]) {
@@ -330,8 +330,8 @@ export class SchedulingEngine {
         const examSessions = allSessions.filter((s) => s.examId === exam.id);
         return examSessions.length >= 3;
       }),
-      dailyBudgetRespected: Object.values(schedule).every(
-        (day) => day.totalMinutes <= this.dailyBudgetMinutes
+      studySessionLimitRespected: Object.values(schedule).every(
+        (day) => day.totalMinutes <= this.studySessionLimitMinutes
       ),
     };
 
@@ -354,6 +354,6 @@ export function calculateScheduleMetrics(schedule) {
     totalMinutes: allSessions.reduce((sum, s) => sum + s.duration, 0),
     homeworkSessions: allSessions.filter((s) => s.type === "homework").length,
     examSessions: allSessions.filter((s) => s.type === "exam_revision").length,
-    averageDailyLoad: allSessions.reduce((sum, s) => sum + s.duration, 0) / 7,
+    averageSessionLoad: allSessions.reduce((sum, s) => sum + s.duration, 0) / 7,
   };
 }

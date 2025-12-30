@@ -125,6 +125,10 @@ export default function WeeklyCalendar({
           <span className="text-gray-600">Completed</span>
         </div>
         <div className="flex items-center gap-2">
+          <Clock className="w-3 h-3 sm:w-4 sm:h-4 text-orange-500" />
+          <span className="text-gray-600">Rescheduled</span>
+        </div>
+        <div className="flex items-center gap-2">
           <XCircle className="w-3 h-3 sm:w-4 sm:h-4 text-red-500" />
           <span className="text-gray-600">Missed</span>
         </div>

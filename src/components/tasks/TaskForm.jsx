@@ -2,13 +2,13 @@ import { useState } from "react";
 import { X, Loader2 } from "lucide-react";
 import { format, addDays } from "date-fns";
 
-export default function TaskForm({ onSubmit, onClose }) {
+export default function TaskForm({ onSubmit, onClose, initialData = null }) {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    name: "",
-    subject: "",
-    deadline: format(addDays(new Date(), 1), "yyyy-MM-dd"),
-    estimatedTime: 60,
+    name: initialData?.name || "",
+    subject: initialData?.subject || "",
+    deadline: initialData?.deadline || format(addDays(new Date(), 1), "yyyy-MM-dd"),
+    estimatedTime: initialData?.estimatedTime || 60,
   });
 
   const [errors, setErrors] = useState({});
@@ -86,7 +86,7 @@ export default function TaskForm({ onSubmit, onClose }) {
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-4 sm:p-6 my-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold text-gray-900">
-            Add Homework Task
+            {initialData ? "Edit Task" : "Add Homework Task"}
           </h2>
           <button
             onClick={onClose}
@@ -200,7 +200,7 @@ export default function TaskForm({ onSubmit, onClose }) {
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-              {loading ? "Adding..." : "Add Task"}
+              {loading ? (initialData ? "Updating..." : "Adding...") : (initialData ? "Update Task" : "Add Task")}
             </button>
           </div>
         </form>
