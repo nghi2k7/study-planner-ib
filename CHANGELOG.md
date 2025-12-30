@@ -1,3 +1,12 @@
+## [1.1.2](https://github.com/nghi2k7/study-planner-ib/compare/v1.1.1...v1.1.2) (2025-12-30)
+
+
+### Bug Fixes
+
+* replace shadow-sm with shadow-xs and update opacity syntax to modern Tailwind format ([570fb1a](https://github.com/nghi2k7/study-planner-ib/commit/570fb1a7a5b636df7b01abb73cd8a3b885fbcd91))
+
+
+
 ## [1.1.1](https://github.com/nghi2k7/study-planner-ib/compare/v1.1.0...v1.1.1) (2025-12-30)
 
 
