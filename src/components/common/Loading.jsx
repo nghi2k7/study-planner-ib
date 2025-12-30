@@ -42,7 +42,7 @@ export function LoadingSpinner({ size = "md", className = "" }) {
 
 export function LoadingOverlay({ message = "Processing..." }) {
   return (
-    <div className="absolute inset-0 bg-white bg-opacity-90 flex items-center justify-center z-40 rounded-lg">
+    <div className="absolute inset-0 bg-white/90 flex items-center justify-center z-40 rounded-lg">
       <div className="text-center">
         <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-3" />
         <p className="text-gray-700 font-medium">{message}</p>

@@ -66,7 +66,7 @@ export default function SessionCard({
     <div className={`border-2 rounded-lg p-3 sm:p-4 transition-all ${getTypeColor()}`}>
       <div className="flex items-start gap-2 sm:gap-3">
         {/* Type Icon */}
-        <div className="p-1.5 sm:p-2 bg-white rounded-lg flex-shrink-0">
+        <div className="p-1.5 sm:p-2 bg-white rounded-lg shrink-0">
           {getTypeIcon()}
         </div>
 
@@ -77,7 +77,7 @@ export default function SessionCard({
               <h4 className="font-semibold text-gray-900 text-sm sm:text-base truncate">{session.title}</h4>
               <p className="text-xs sm:text-sm opacity-75 truncate">{session.subject}</p>
             </div>
-            <div className="flex-shrink-0 mt-1">
+            <div className="shrink-0 mt-1">
               {getStatusIcon()}
             </div>
           </div>

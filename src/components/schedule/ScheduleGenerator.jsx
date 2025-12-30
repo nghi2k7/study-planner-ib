@@ -43,7 +43,7 @@ export default function ScheduleGenerator({
   const canGenerate = pendingTasks.length > 0 || upcomingExams.length > 0;
 
   return (
-    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6 border-2 border-blue-100">
+    <div className="bg-white rounded-xl shadow-xs p-4 sm:p-6 border-2 border-blue-100">
       <div className="flex items-start justify-between mb-4">
         <div className="pr-8">
           <h3 className="text-base sm:text-lg font-bold text-gray-900 mb-1">
@@ -144,7 +144,7 @@ export default function ScheduleGenerator({
         disabled={loading || !canGenerate}
         className={`w-full flex items-center justify-center gap-2 py-2.5 sm:py-3 px-4 rounded-lg font-semibold transition-colors text-sm sm:text-base ${
           canGenerate && !loading
-            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-xs"
             : "bg-gray-300 text-gray-500 cursor-not-allowed"
         }`}
       >
