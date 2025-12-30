@@ -294,7 +294,7 @@ export default function Dashboard() {
         {unscheduledItems.length > 0 && (
           <div className="mb-6 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-r-lg shadow-sm">
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0">
+              <div className="shrink-0">
                 <Clock className="h-5 w-5 text-amber-400" />
               </div>
               <div>

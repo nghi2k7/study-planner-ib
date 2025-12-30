@@ -56,7 +56,7 @@ export default function ScheduleGenerator({
 
         <button
           onClick={() => setShowSettings(!showSettings)}
-          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors flex-shrink-0"
+          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors shrink-0"
           title="Settings"
         >
           <Settings className="w-5 h-5" />
@@ -103,7 +103,7 @@ export default function ScheduleGenerator({
       {canGenerate && (
         <div className="mb-4 p-3 bg-indigo-50 border border-indigo-200 rounded-lg">
           <div className="flex items-center gap-2 text-xs sm:text-sm">
-            <CheckCircle className="w-4 h-4 text-indigo-600 flex-shrink-0" />
+            <CheckCircle className="w-4 h-4 text-indigo-600 shrink-0" />
             <span className="text-indigo-900 font-medium">
               Estimated: {getEstimatedDays()} days needed
             </span>
@@ -129,7 +129,7 @@ export default function ScheduleGenerator({
       {!canGenerate && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
           <div className="flex items-center gap-2 text-xs sm:text-sm text-yellow-800">
-            <AlertCircle className="w-4 h-4 text-yellow-600 flex-shrink-0" />
+            <AlertCircle className="w-4 h-4 text-yellow-600 shrink-0" />
             <span className="font-medium">No tasks or exams to schedule</span>
           </div>
           <p className="text-[10px] sm:text-xs text-yellow-700 mt-1">
