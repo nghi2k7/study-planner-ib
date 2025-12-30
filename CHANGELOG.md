@@ -1,4 +1,8 @@
-# 1.1.0 (2025-12-30)
+## [1.1.1](https://github.com/nghi2k7/study-planner-ib/compare/v1.1.0...v1.1.1) (2025-12-30)
+
+
+
+# [1.1.0](https://github.com/nghi2k7/study-planner-ib/compare/f879f636c83d7958f54d94011f21379c3841ca7f...v1.1.0) (2025-12-30)
 
 
 ### Bug Fixes
