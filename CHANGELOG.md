@@ -1,3 +1,12 @@
+# [1.3.0](https://github.com/nghi2k7/study-planner-ib/compare/v1.2.0...v1.3.0) (2026-01-08)
+
+
+### Features
+
+* prevent scheduling sessions on past dates in task and exam scheduling ([91c6274](https://github.com/nghi2k7/study-planner-ib/commit/91c6274e784cc240505e3dd633ebdb812b970be8))
+
+
+
 # [1.2.0](https://github.com/nghi2k7/study-planner-ib/compare/v1.1.2...v1.2.0) (2025-12-30)
 
 
