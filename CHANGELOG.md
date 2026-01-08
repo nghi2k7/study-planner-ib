@@ -1,3 +1,12 @@
+# [1.5.0](https://github.com/nghi2k7/study-planner-ib/compare/v1.4.0...v1.5.0) (2026-01-08)
+
+
+### Features
+
+* track task/exam progress across weeks and improve schedule validation with reactive unscheduled items ([6ab1275](https://github.com/nghi2k7/study-planner-ib/commit/6ab127568b8880d38f558432c7e4ed3a08add9b0))
+
+
+
 # [1.4.0](https://github.com/nghi2k7/study-planner-ib/compare/v1.3.0...v1.4.0) (2026-01-08)
 
 
@@ -31,10 +40,6 @@
 ### Bug Fixes
 
 * replace shadow-sm with shadow-xs and update opacity syntax to modern Tailwind format ([570fb1a](https://github.com/nghi2k7/study-planner-ib/commit/570fb1a7a5b636df7b01abb73cd8a3b885fbcd91))
-
-
-
-## [1.1.1](https://github.com/nghi2k7/study-planner-ib/compare/v1.1.0...v1.1.1) (2025-12-30)
 
 
 
