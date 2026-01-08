@@ -39,6 +39,7 @@ export default function Dashboard() {
   const [showExamForm, setShowExamForm] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [editingExam, setEditingExam] = useState(null);
+  const [taskFilter, setTaskFilter] = useState("all");
   const [studySessionLimit, setStudySessionLimit] = useState(480); // 8 hours default
   const [unscheduledItems, setUnscheduledItems] = useState([]);
 
@@ -242,35 +243,53 @@ export default function Dashboard() {
 
   const handleSessionStatusChange = async (sessionId, status) => {
     try {
+      // 1. Find the session and its associated taskId BEFORE state updates
+      let targetTaskId = null;
+      let targetSession = null;
+      
+      Object.values(schedule).forEach(day => {
+        const found = day.sessions.find(s => s.id === sessionId);
+        if (found) {
+          targetSession = found;
+          if (found.taskId) targetTaskId = found.taskId;
+        }
+      });
+
+      if (!targetSession) return;
+
+      // 2. Update Firestore
       await scheduleService.updateSessionStatus(sessionId, status);
 
-      // Update local state for the original session
+      // 3. Create the updated schedule object for both state and logic
       const updatedSchedule = { ...schedule };
-      let missedSession = null;
-
       Object.keys(updatedSchedule).forEach((date) => {
-        updatedSchedule[date].sessions = updatedSchedule[date].sessions.map(
-          (s) => {
-            if (s.id === sessionId) {
-              const updated = { ...s, status };
-              if (status === "missed") missedSession = updated;
-              return updated;
-            }
-            return s;
-          }
-        );
+        updatedSchedule[date] = {
+          ...updatedSchedule[date],
+          sessions: updatedSchedule[date].sessions.map((s) => 
+            s.id === sessionId ? { ...s, status } : s
+          ),
+        };
       });
 
       setSchedule(updatedSchedule);
       toast.success(`Session marked as ${status}`);
 
-      // If missed, trigger greedy rescheduling as per flowchart
-      if (status === "missed" && missedSession) {
-        const engine = new SchedulingEngine([], [], studySessionLimit);
-        const allSessions = Object.values(updatedSchedule).flatMap(
-          (d) => d.sessions
-        );
+      // 4. Sync task status if session is completed
+      if (status === "completed" && targetTaskId) {
+        // Check if there are ANY incomplete sessions for this task across ALL time in Firestore
+        const hasMoreIncomplete = await scheduleService.hasIncompleteSessions(user.uid, targetTaskId);
+        
+        if (!hasMoreIncomplete) {
+          await handleTaskUpdate(targetTaskId, { status: "completed" });
+        }
+      }
 
+      // 5. If missed, trigger rescheduling
+      if (status === "missed") {
+        const missedSession = { ...targetSession, status: "missed" };
+        const engine = new SchedulingEngine([], [], studySessionLimit);
+        const allSessions = Object.values(schedule).flatMap(d => d.sessions);
+        
         const rescheduledSessions = engine.rescheduleMissedSession(
           missedSession,
           new Date(missedSession.date),
@@ -278,30 +297,16 @@ export default function Dashboard() {
         );
 
         if (rescheduledSessions.length > 0) {
-          const weekStart = format(
-            startOfWeek(new Date(), { weekStartsOn: 1 }),
-            "yyyy-MM-dd"
-          );
-
-          await scheduleService.addSessions(
-            user.uid,
-            rescheduledSessions,
-            weekStart
-          );
-          toast.success(
-            `Rescheduled across ${rescheduledSessions.length} day(s)`
-          );
-
-          // Reload all data to refresh the calendar view
+          const weekStart = format(startOfWeek(new Date(), { weekStartsOn: 1 }), "yyyy-MM-dd");
+          await scheduleService.addSessions(user.uid, rescheduledSessions, weekStart);
+          toast.success(`Rescheduled across ${rescheduledSessions.length} day(s)`);
           await loadData();
         } else {
-          toast.error(
-            "No free time available in the next 3 days to reschedule"
-          );
+          toast.error("No free time available in the next 3 days to reschedule");
         }
       }
     } catch (error) {
-      console.error("Error updating session:", error);
+      console.error("Error updating session status:", error);
       toast.error("Failed to update session");
     }
   };
@@ -355,10 +360,45 @@ export default function Dashboard() {
   const handleTaskUpdate = async (taskId, updates) => {
     try {
       await taskService.updateTask(taskId, updates);
-      setTasks(tasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t)));
-      toast.success("Task updated");
+      
+      // 1. Update tasks state
+      setTasks((prevTasks) => 
+        prevTasks.map((t) => (t.id === taskId ? { ...t, ...updates } : t))
+      );
+
+      // 2. Sync with schedule if status is changing
+      if (updates.status) {
+        setSchedule(prevSchedule => {
+          const updatedSchedule = { ...prevSchedule };
+          let sessionsToUpdate = [];
+
+          Object.keys(updatedSchedule).forEach(date => {
+            updatedSchedule[date].sessions = updatedSchedule[date].sessions.map(s => {
+              if (s.taskId === taskId) {
+                const updatedSession = { ...s, status: updates.status };
+                sessionsToUpdate.push(updatedSession);
+                return updatedSession;
+              }
+              return s;
+            });
+          });
+
+          // Update associated sessions in Firestore as well
+          if (sessionsToUpdate.length > 0) {
+            scheduleService.bulkUpdateSessions(
+              sessionsToUpdate.map(s => ({
+                sessionId: s.id,
+                status: updates.status
+              }))
+            ).catch(err => console.error("Failed to sync sessions in Firestore:", err));
+          }
+
+          return updatedSchedule;
+        });
+      }
     } catch (error) {
-      toast.error("Failed to update task");
+      console.error("Error updating task status:", error);
+      toast.error("Failed to sync task status");
     }
   };
 
@@ -479,9 +519,12 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           <div 
-            onClick={() => setActiveTab("tasks")}
+            onClick={() => {
+              setActiveTab("tasks");
+              setTaskFilter("pending");
+            }}
             className={`rounded-lg p-4 shadow-xs cursor-pointer transition-all hover:scale-102 ${
-              activeTab === "tasks" ? "bg-blue-50 ring-2 ring-blue-500" : "bg-white"
+              activeTab === "tasks" && taskFilter === "pending" ? "bg-blue-50 ring-2 ring-blue-500" : "bg-white"
             }`}
           >
             <div className="flex items-center gap-3">
@@ -575,6 +618,7 @@ export default function Dashboard() {
         {activeTab === "tasks" && (
           <TaskList
             tasks={tasks}
+            initialFilter={taskFilter}
             onEdit={(task) => {
               setEditingTask(task);
               setShowTaskForm(true);

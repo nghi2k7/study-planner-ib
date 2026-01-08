@@ -6,6 +6,40 @@ import { format } from "date-fns";
  */
 
 /**
+ * Helper to safely format dates from various formats (Firebase Timestamp, Date object, string)
+ */
+function safelyFormatDate(dateValue, formatStr = "yyyy-MM-dd HH:mm") {
+  if (!dateValue) return "N/A";
+
+  try {
+    let date;
+    // Firebase Timestamp
+    if (dateValue && typeof dateValue === 'object' && 'seconds' in dateValue) {
+      date = new Date(dateValue.seconds * 1000);
+    } 
+    // Firestore serverTimestamp placeholder or other objects
+    else if (typeof dateValue === 'object' && dateValue !== null && !(dateValue instanceof Date)) {
+      // If it's a serverTimestamp placeholder, it's being created right now
+      return format(new Date(), formatStr);
+    }
+    // Date object or string/number
+    else {
+      date = new Date(dateValue);
+    }
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return "Invalid Date";
+    }
+
+    return format(date, formatStr);
+  } catch (error) {
+    console.error("Error formatting date:", error, dateValue);
+    return "Error";
+  }
+}
+
+/**
  * Convert schedule data to CSV format
  */
 export function scheduleToCSV(schedule, tasks, exams) {
@@ -28,7 +62,7 @@ export function scheduleToCSV(schedule, tasks, exams) {
   // Add data rows
   sortedDates.forEach((date) => {
     const dayData = schedule[date];
-    const dayName = format(new Date(date), "EEEE");
+    const dayName = safelyFormatDate(date, "EEEE");
 
     dayData.sessions.forEach((session) => {
       rows.push([
@@ -70,9 +104,7 @@ export function tasksToCSV(tasks) {
       task.deadline,
       task.estimatedTime,
       task.status,
-      task.createdAt
-        ? format(new Date(task.createdAt.seconds * 1000), "yyyy-MM-dd HH:mm")
-        : "N/A",
+      safelyFormatDate(task.createdAt),
     ]);
   });
 
@@ -101,9 +133,7 @@ export function examsToCSV(exams) {
       exam.date,
       exam.estimatedTime || 240,
       exam.notes || "",
-      exam.createdAt
-        ? format(new Date(exam.createdAt.seconds * 1000), "yyyy-MM-dd HH:mm")
-        : "N/A",
+      safelyFormatDate(exam.createdAt),
     ]);
   });
 

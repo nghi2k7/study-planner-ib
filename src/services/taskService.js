@@ -24,6 +24,7 @@ export const taskService = {
    */
   async createTask(userId, taskData) {
     try {
+      const now = new Date();
       const task = {
         userId,
         name: taskData.name,
@@ -36,7 +37,8 @@ export const taskService = {
       };
 
       const docRef = await addDoc(collection(db, TASKS_COLLECTION), task);
-      return { id: docRef.id, ...task };
+      // Return with local Date objects so UI can show them immediately
+      return { ...task, id: docRef.id, createdAt: now, updatedAt: now };
     } catch (error) {
       console.error("Error creating task:", error);
       throw error;
