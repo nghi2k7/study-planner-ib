@@ -24,6 +24,7 @@ export const examService = {
    */
   async createExam(userId, examData) {
     try {
+      const now = new Date();
       const exam = {
         userId,
         subject: examData.subject,
@@ -35,7 +36,8 @@ export const examService = {
       };
 
       const docRef = await addDoc(collection(db, EXAMS_COLLECTION), exam);
-      return { id: docRef.id, ...exam };
+      // Return with local Date objects so UI can show them immediately
+      return { ...exam, id: docRef.id, createdAt: now, updatedAt: now };
     } catch (error) {
       console.error("Error creating exam:", error);
       throw error;

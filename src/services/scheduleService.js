@@ -259,6 +259,26 @@ export const scheduleService = {
   },
 
   /**
+   * Check if a task has any incomplete sessions across all time
+   */
+  async hasIncompleteSessions(userId, taskId) {
+    try {
+      // To avoid requiring a composite index for != "completed", 
+      // we fetch sessions for this specific user and task, then filter in memory.
+      const q = query(
+        collection(db, SESSIONS_COLLECTION),
+        where("userId", "==", userId),
+        where("taskId", "==", taskId)
+      );
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.some(doc => doc.data().status !== "completed");
+    } catch (error) {
+      console.error("Error checking incomplete sessions:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Bulk update session statuses
    */
   async bulkUpdateSessions(updates) {

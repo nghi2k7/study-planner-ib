@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TaskItem from "./TaskItem";
 import { Filter, Search } from "lucide-react";
 
-export default function TaskList({ tasks, onEdit, onDelete, onComplete }) {
-  const [filter, setFilter] = useState("all"); // all, pending, completed
+export default function TaskList({ tasks, initialFilter = "all", onEdit, onDelete, onComplete }) {
+  const [filter, setFilter] = useState(initialFilter); // all, pending, completed
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Sync internal filter state with prop when it changes (e.g. from stats cards)
+  useEffect(() => {
+    setFilter(initialFilter);
+  }, [initialFilter]);
 
   // Filter tasks
   const filteredTasks = tasks.filter((task) => {
