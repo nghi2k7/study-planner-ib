@@ -23,6 +23,7 @@ import {
   Download,
 } from "lucide-react";
 import { format, startOfWeek } from "date-fns";
+import { useMemo } from "react";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -41,7 +42,24 @@ export default function Dashboard() {
   const [editingExam, setEditingExam] = useState(null);
   const [taskFilter, setTaskFilter] = useState("all");
   const [studySessionLimit, setStudySessionLimit] = useState(480); // 8 hours default
-  const [unscheduledItems, setUnscheduledItems] = useState([]);
+  const [taskProgress, setTaskProgress] = useState({}); // { taskId: totalMinutesScheduled }
+  const [examProgress, setExamProgress] = useState({}); // { examId: totalMinutesScheduled }
+
+  // Reactive validation for unscheduled items
+  const unscheduledItems = useMemo(() => {
+    if (loading || !tasks.length) return [];
+    
+    // Filter tasks and exams similarly to how they are filtered for scheduling
+    const pendingTasks = tasks.filter((t) => t.status === "pending");
+    const upcomingExams = exams.filter((e) => new Date(e.date) >= new Date().setHours(0,0,0,0));
+    
+    // Combine task and exam progress
+    const progress = { ...taskProgress, ...examProgress };
+    
+    const engine = new SchedulingEngine(pendingTasks, upcomingExams, studySessionLimit, progress);
+    const validation = engine.validateSchedule(schedule);
+    return validation.unscheduledItems || [];
+  }, [tasks, exams, schedule, studySessionLimit, loading, taskProgress, examProgress]);
 
   const setActiveTab = (tab) => {
     setSearchParams({ tab });
@@ -49,7 +67,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadData();
-  }, [user]);
+  }, [user, startOfWeek(selectedDate, { weekStartsOn: 1 }).getTime()]);
 
   const loadData = async () => {
     try {
@@ -64,7 +82,7 @@ export default function Dashboard() {
 
       // Load existing schedule
       const weekStart = format(
-        startOfWeek(new Date(), { weekStartsOn: 1 }),
+        startOfWeek(selectedDate, { weekStartsOn: 1 }),
         "yyyy-MM-dd"
       );
       const sessions = await scheduleService.getWeekSchedule(
@@ -88,10 +106,26 @@ export default function Dashboard() {
 
       setSchedule(scheduleObj);
 
-      // Re-run validation on loaded data to show unscheduled items if any
-      const engine = new SchedulingEngine(tasksData, examsData, studySessionLimit);
-      const validation = engine.validateSchedule(scheduleObj);
-      setUnscheduledItems(validation.unscheduledItems || []);
+      // Fetch progress (total duration across previous weeks) for each task and exam
+      const progressPromises = [
+        ...tasksData.map(t => scheduleService.getTaskTotalDuration(user.uid, t.id, weekStart).then(duration => ({ id: t.id, duration }))),
+        ...examsData.map(e => scheduleService.getExamTotalDuration(user.uid, e.id, weekStart).then(duration => ({ id: e.id, duration })))
+      ];
+      
+      const progressResults = await Promise.all(progressPromises);
+      const newTaskProgress = {};
+      const newExamProgress = {};
+      
+      progressResults.forEach(res => {
+        if (tasksData.find(t => t.id === res.id)) {
+          newTaskProgress[res.id] = res.duration;
+        } else {
+          newExamProgress[res.id] = res.duration;
+        }
+      });
+      
+      setTaskProgress(newTaskProgress);
+      setExamProgress(newExamProgress);
     } catch (error) {
       console.error("Error loading data:", error);
       toast.error("Failed to load data");
@@ -114,22 +148,12 @@ export default function Dashboard() {
         return;
       }
 
+      // Combine progress for engine
+      const progress = { ...taskProgress, ...examProgress };
+
       // Run scheduling algorithm
-      const engine = new SchedulingEngine(pendingTasks, upcomingExams, budget);
+      const engine = new SchedulingEngine(pendingTasks, upcomingExams, budget, progress);
       const newSchedule = engine.generateWeeklySchedule();
-
-      // Validate schedule
-      const validation = engine.validateSchedule(newSchedule);
-      setUnscheduledItems(validation.unscheduledItems || []);
-
-      if (!validation.isValid) {
-        console.warn("Schedule validation issues:", validation.details);
-        if (validation.unscheduledItems.length > 0) {
-          toast.error(
-            "Some items could not be fully scheduled. Check the warnings."
-          );
-        }
-      }
 
       // Save to database
       const allSessions = Object.values(newSchedule).flatMap(

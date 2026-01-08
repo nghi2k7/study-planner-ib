@@ -12,10 +12,11 @@ import {
  */
 
 export class SchedulingEngine {
-  constructor(tasks, exams, studySessionLimitMinutes = 480) {
+  constructor(tasks, exams, studySessionLimitMinutes = 480, initialProgress = {}) {
     this.tasks = tasks;
     this.exams = exams;
     this.studySessionLimitMinutes = studySessionLimitMinutes;
+    this.initialProgress = initialProgress; // { taskId/examId: minutesAlreadyScheduled }
     this.schedule = {};
   }
 
@@ -76,7 +77,13 @@ export class SchedulingEngine {
   scheduleTask(task, weekStart, sessionTimeUsed, startDate = new Date()) {
     const deadline = new Date(task.deadline);
     const daysUntilDeadline = differenceInDays(deadline, weekStart);
-    let remainingMinutes = task.estimatedTime;
+    
+    // Account for time already scheduled in previous weeks
+    const alreadyScheduled = this.initialProgress[task.id] || 0;
+    let remainingMinutes = Math.max(0, task.estimatedTime - alreadyScheduled);
+    
+    if (remainingMinutes <= 0) return [];
+
     const taskSessions = [];
     const todayStr = format(startDate, "yyyy-MM-dd");
 
@@ -131,7 +138,13 @@ export class SchedulingEngine {
 
     if (daysUntilExam < 0) return sessions;
 
-    let remainingMinutes = exam.estimatedTime || 240;
+    // Account for time already scheduled in previous weeks
+    const alreadyScheduled = this.initialProgress[exam.id] || 0;
+    const totalNeeded = exam.estimatedTime || 240;
+    let remainingMinutes = Math.max(0, totalNeeded - alreadyScheduled);
+
+    if (remainingMinutes <= 0) return sessions;
+
     const daysToUse = Math.min(Math.max(daysUntilExam, 3), 7);
     const idealDailyShare = Math.ceil(remainingMinutes / daysToUse);
 
@@ -296,33 +309,53 @@ export class SchedulingEngine {
 
     // Check homework tasks
     this.tasks.forEach((task) => {
-      const scheduledMinutes = allSessions
-        .filter((s) => s.taskId === task.id)
-        .reduce((sum, s) => sum + s.duration, 0);
+      // Skip completed tasks
+      if (task.status === "completed") return;
 
-      if (scheduledMinutes < task.estimatedTime) {
+      const taskSessions = allSessions.filter((s) => s.taskId === task.id);
+      const currentWeekMinutes = taskSessions
+        .filter((s) => (s.status === "planned" || s.status === "completed" || s.status === "rescheduled"))
+        .reduce((sum, s) => sum + Number(s.duration || 0), 0);
+      
+      const previousWeeksMinutes = Number(this.initialProgress[task.id] || 0);
+      const totalScheduledMinutes = currentWeekMinutes + previousWeeksMinutes;
+      const estimatedTime = Number(task.estimatedTime || 0);
+
+      if (totalScheduledMinutes < estimatedTime) {
         unscheduledItems.push({
           id: task.id,
           name: task.name,
           type: "homework",
-          missingMinutes: task.estimatedTime - scheduledMinutes,
+          missingMinutes: estimatedTime - totalScheduledMinutes,
         });
       }
     });
 
     // Check exam revision
     this.exams.forEach((exam) => {
-      const scheduledMinutes = allSessions
-        .filter((s) => s.examId === exam.id)
-        .reduce((sum, s) => sum + s.duration, 0);
+      // Skip exams that are in the past (before today)
+      const examDate = new Date(exam.date);
+      examDate.setHours(0,0,0,0);
+      const today = new Date();
+      today.setHours(0,0,0,0);
+      
+      if (examDate < today) return;
 
-      const totalNeeded = exam.estimatedTime || 240;
-      if (scheduledMinutes < totalNeeded) {
+      const examSessions = allSessions.filter((s) => s.examId === exam.id);
+      const currentWeekMinutes = examSessions
+        .filter((s) => (s.status === "planned" || s.status === "completed" || s.status === "rescheduled"))
+        .reduce((sum, s) => sum + Number(s.duration || 0), 0);
+
+      const previousWeeksMinutes = Number(this.initialProgress[exam.id] || 0);
+      const totalScheduledMinutes = currentWeekMinutes + previousWeeksMinutes;
+      const totalNeeded = Number(exam.estimatedTime || 240);
+
+      if (totalScheduledMinutes < totalNeeded) {
         unscheduledItems.push({
           id: exam.id,
           name: exam.subject,
           type: "exam_revision",
-          missingMinutes: totalNeeded - scheduledMinutes,
+          missingMinutes: totalNeeded - totalScheduledMinutes,
         });
       }
     });

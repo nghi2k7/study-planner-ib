@@ -7,7 +7,7 @@ export default function WeeklyCalendar({
   onDateSelect,
   onSessionStatusChange,
 }) {
-  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const getStatusIcon = (status) => {
