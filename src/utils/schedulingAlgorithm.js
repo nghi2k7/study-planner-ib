@@ -38,7 +38,7 @@ export class SchedulingEngine {
     const sortedTasks = this.sortTasksByDeadline();
 
     for (const task of sortedTasks) {
-      const taskSessions = this.scheduleTask(task, start, sessionTimeUsed);
+      const taskSessions = this.scheduleTask(task, start, sessionTimeUsed, startDate);
       if (taskSessions && taskSessions.length > 0) {
         sessions.push(...taskSessions);
       }
@@ -49,7 +49,8 @@ export class SchedulingEngine {
       const examSessions = this.distributeExamRevision(
         exam,
         start,
-        sessionTimeUsed
+        sessionTimeUsed,
+        startDate
       );
       sessions.push(...examSessions);
     }
@@ -72,15 +73,20 @@ export class SchedulingEngine {
    * Schedule a single homework task
    * Supports splitting across multiple days if needed (greedy filling)
    */
-  scheduleTask(task, weekStart, sessionTimeUsed) {
+  scheduleTask(task, weekStart, sessionTimeUsed, startDate = new Date()) {
     const deadline = new Date(task.deadline);
     const daysUntilDeadline = differenceInDays(deadline, weekStart);
     let remainingMinutes = task.estimatedTime;
     const taskSessions = [];
+    const todayStr = format(startDate, "yyyy-MM-dd");
 
     // Try to schedule across available days before deadline
     for (let day = 0; day <= Math.min(daysUntilDeadline, 6); day++) {
       const currentDay = format(addDays(weekStart, day), "yyyy-MM-dd");
+      
+      // Skip if the day is in the past relative to startDate
+      if (currentDay < todayStr) continue;
+
       const freeMinutes = this.studySessionLimitMinutes - sessionTimeUsed[currentDay];
 
       if (freeMinutes > 0) {
@@ -117,10 +123,11 @@ export class SchedulingEngine {
    * Distribute exam revision across available days
    * Implements greedy filling as per flowchart
    */
-  distributeExamRevision(exam, weekStart, sessionTimeUsed) {
+  distributeExamRevision(exam, weekStart, sessionTimeUsed, startDate = new Date()) {
     const examDate = new Date(exam.date);
     const daysUntilExam = differenceInDays(examDate, weekStart);
     const sessions = [];
+    const todayStr = format(startDate, "yyyy-MM-dd");
 
     if (daysUntilExam < 0) return sessions;
 
@@ -130,6 +137,10 @@ export class SchedulingEngine {
 
     for (let day = 0; day < daysToUse && day < 7; day++) {
       const currentDay = format(addDays(weekStart, day), "yyyy-MM-dd");
+      
+      // Skip if the day is in the past relative to startDate
+      if (currentDay < todayStr) continue;
+
       const freeMinutes = this.studySessionLimitMinutes - sessionTimeUsed[currentDay];
 
       if (freeMinutes > 0) {
@@ -164,6 +175,10 @@ export class SchedulingEngine {
     if (remainingMinutes > 0) {
       for (let day = 0; day < daysToUse && day < 7; day++) {
         const currentDay = format(addDays(weekStart, day), "yyyy-MM-dd");
+        
+        // Skip if the day is in the past relative to startDate
+        if (currentDay < todayStr) continue;
+
         const freeMinutes = this.studySessionLimitMinutes - sessionTimeUsed[currentDay];
 
         if (freeMinutes > 0) {
