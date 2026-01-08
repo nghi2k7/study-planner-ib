@@ -279,6 +279,52 @@ export const scheduleService = {
   },
 
   /**
+   * Get total duration of all sessions associated with a task, optionally excluding a specific week
+   */
+  async getTaskTotalDuration(userId, taskId, excludeWeekStart = null) {
+    try {
+      let q = query(
+        collection(db, SESSIONS_COLLECTION),
+        where("userId", "==", userId),
+        where("taskId", "==", taskId)
+      );
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.reduce((sum, doc) => {
+        const data = doc.data();
+        if (excludeWeekStart && data.weekStart === excludeWeekStart) return sum;
+        if (data.status === "missed") return sum;
+        return sum + (data.duration || 0);
+      }, 0);
+    } catch (error) {
+      console.error("Error getting task total duration:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get total duration of all sessions associated with an exam, optionally excluding a specific week
+   */
+  async getExamTotalDuration(userId, examId, excludeWeekStart = null) {
+    try {
+      let q = query(
+        collection(db, SESSIONS_COLLECTION),
+        where("userId", "==", userId),
+        where("examId", "==", examId)
+      );
+      const querySnapshot = await getDocs(q);
+      return querySnapshot.docs.reduce((sum, doc) => {
+        const data = doc.data();
+        if (excludeWeekStart && data.weekStart === excludeWeekStart) return sum;
+        if (data.status === "missed") return sum;
+        return sum + (data.duration || 0);
+      }, 0);
+    } catch (error) {
+      console.error("Error getting exam total duration:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Bulk update session statuses
    */
   async bulkUpdateSessions(updates) {
